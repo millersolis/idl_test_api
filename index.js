@@ -2,15 +2,20 @@
 
 const express = require('express');
 const app = express();
+const fs = require('fs');
+
 // const PORT = 8080;
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 
-app.listen(
+var server = app.listen(
     PORT,
-    () => console.log(`IDL test running on port:${PORT}`)
-)
+    function() {
+        var host = server.address().address;
+        var port = server.address().port;
+        console.log("IDL test running at http://%s:%s", host, port);
+})
 
 app.get('/', (req,res) => {
     res.status(200).send({
@@ -19,118 +24,91 @@ app.get('/', (req,res) => {
 })
 
 ///////////////////// VARIABLES /////////////////////
+const usersFile = __dirname + "/" + "users.json";
 
 const IDLE_STR = 'idle';
 const AWAY_STR = 'away';
 const UNKNWN_STR = 'unknown';
 
-var imane = {'username': 'imane', 'status': AWAY_STR};
-var miller = {'username': 'miller', 'status': AWAY_STR};
-
 
 ////////////////////// GET ////////////////////////
 
-// Get user status
-app.get('/status/:username', (req, res) => {
-    const { username } = req.params;
-
-    var user_status = UNKNWN_STR;
-    var user_found = false;
-
-    // Check username and get status
-    if (username == imane.username) {
-        user_status = imane.status;
-        user_found = true;
-    }
-    else if (username == miller.username) {
-        user_status = miller.status;
-        user_found = true;
-    }
-
-    // Send response
-    if (user_found) {
-        res.status(200).send({
-            username: `${username}`,
-            status: `${user_status}`
-        })
-    }
-    else {
-        res.status(404).send({
-            message: 'User not found'
-        })
-    }
-
-});
-
-
-////////////////////// POST ////////////////////////
-
-// Modify user status to idle
-app.post('/idle/:username', (req,res) => {
-    const { username } = req.params;
-
-    var user_found = false;
-    var user_status = UNKNWN_STR;
-
-    // Check username and set status
-    if (username == imane.username) {
-        imane.status = IDLE_STR;
-        user_status = imane.status;
-        user_found = true;
-    }
-    else if (username == miller.username) {
-        miller.status = IDLE_STR;
-        user_status = miller.status;
-        user_found = true;
-    }
-
-    // Send response
-    if (user_found) {
-        res.status(200).send({
-            username: `${username}`,
-            status: `${user_status}`
-        })
-    }
-    else {
-        res.status(404).send({
-            message: 'User not found'
-        })
-    }
+// Endpoint to Get a list of users
+app.get('/getUsers', (req, res) => {
+    fs.readFile(
+        usersFile,
+        'utf8',
+        function (err, data) {
+            if (err) throw err;
+            res.end(data);
+    });
     
 })
 
-// Modify user status to away
-app.post('/away/:username', (req,res) => {
+// Endpoint to get user status by username
+app.get('/status/:username', function (req, res) {
     const { username } = req.params;
 
-    var user_found = false;
-    var user_status = UNKNWN_STR;
-
-    // Check username and set status
-    if (username == imane.username) {
-        imane.status = AWAY_STR;
-        user_status = imane.status;
-        user_found = true;
-    }
-    else if (username == miller.username) {
-        miller.status = AWAY_STR;
-        user_status = miller.status;
-        user_found = true;
-    }
-
-    // Send response
-    if (user_found) {
-        res.status(200).send({
-            username: `${username}`,
-            status: `${user_status}`
-        })
-    }
-    else {
-        res.status(404).send({
-            message: 'User not found'
-        })
-    }
-})
+    // Retrieve existing user list
+    fs.readFile(
+        usersFile,
+        'utf8',
+        function (err, data) {
+            if (err) throw err;
+            var users = JSON.parse( data );
+            var user = users[username] 
+            res.end( JSON.stringify(user));
+    });
+ })
 
 
+ ////////////////////// POST ////////////////////////
+
+// Endpoint to set user status to idle
+app.post('/idle/:username', function (req, res) {
+    const { username } = req.params;
+    
+    // Retrieve existing user list
+    fs.readFile(
+        usersFile,
+        'utf8',
+        function (err, data) {
+            data = JSON.parse( data );
+            data[username]["status"] = IDLE_STR;
+
+            // Write modified data to json file
+            fs.writeFile(
+                usersFile,
+                JSON.stringify(data),
+                function (err) {
+                    if (err) throw err;
+                    res.end(JSON.stringify(data));
+                })
+    });
+ })
+
+ // Endpoint to set user status to idle
+app.post('/away/:username', function (req, res) {
+    const { username } = req.params;
+    
+    // Retrieve existing user list
+    fs.readFile(
+        usersFile,
+        'utf8',
+        function (err, data) {
+            data = JSON.parse( data );
+            data[username]["status"] = AWAY_STR;
+
+            // Write modified data to json file
+            fs.writeFile(
+                usersFile,
+                JSON.stringify(data),
+                function (err) {
+                    if (err) throw err;
+                    res.end(JSON.stringify(data));
+                })
+    });
+ })
+
+ 
 module.exports = app; // Export the Express app
