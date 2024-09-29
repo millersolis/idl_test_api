@@ -2,13 +2,14 @@
 
 const express = require('express');
 const app = express();
-const PORT = 8080;
+// const PORT = 8080;
+const PORT: process.env.PORT || 5000;
 
 app.use(express.json());
 
 app.listen(
     PORT,
-    () => console.log(`IDL test running on http://localhost:${PORT}`)
+    () => console.log(`IDL test running on port:${PORT}`)
 )
 
 app.get('/', (req,res) => {
@@ -130,3 +131,6 @@ app.post('/away/:username', (req,res) => {
         })
     }
 })
+
+
+module.exports = app; // Export the Express app
